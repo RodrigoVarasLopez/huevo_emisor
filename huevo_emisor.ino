@@ -11,6 +11,19 @@
 #if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
     #include "Wire.h"
 #endif
+#include <SPI.h>//include the SPI bus library
+#include <MFRC522.h>//include the RFID reader library
+
+#define IRQ_PIN 3
+#define SS_PIN 10  //slave select pin
+#define RST_PIN 9  //reset pin
+MFRC522 mfrc522(SS_PIN, RST_PIN);        // instatiate a MFRC522 reader object.
+MFRC522::MIFARE_Key key;//create a MIFARE_Key struct named 'key', which will hold the card information
+
+unsigned char regVal = 0x7F;
+void activateRec(MFRC522 mfrc522);
+void clearInt(MFRC522 mfrc522);
+
 
 MPU6050 mpu;
 
@@ -121,7 +134,7 @@ struct {
 } stat = { 0,0,0,0,0,0,0,0};
 
 // CONFIG
-char IDArduinoNodo[10] = "ROD1";
+char IDArduinoNodo[10] = "EGG";
 int segundos_espera = 1;
 
 void setup()
@@ -130,7 +143,6 @@ void setup()
     Serial.begin(115200);
     Serial.print("\nIniciando ...\n");
   #endif
-
   wdt_enable(WDTO_8S);
   randomSeed(analogRead(pinAnalogRandom));
   dht.begin();
@@ -146,6 +158,7 @@ void setup()
   blinkLed(1, 10);
 
   setupMPU(); //Inicializar giroscopio
+  RFIDsetup();
 }
 
 void loop()
@@ -188,6 +201,27 @@ void loop()
     
   }
 
+  ///RFID
+    String mfr="";
+    
+    if (mfrc522.PICC_ReadCardSerial()){      
+      mfr = String(mfrc522.uid.uidByte[0], HEX);
+      Serial.println(mfr);
+      if (mfr=="75"){   //RFID Aguila 1
+        mfr="1";
+      }else{                
+        if (mfr=="7d"){  //RFID Aguila 2
+          mfr="2";      
+        }else{
+          mfr="-1";       //Error radiofrecuencia -1
+        }
+      }
+      mfrc522.PICC_ReadCardSerial();  //Workaround
+    }else{
+      Serial.println("");
+      mfr="0";
+    }   
+    cadena= addCadena( cadena,"ID:" + mfr, ",");
 
   //Giroscope
   cadena= addCadena( cadena, giroscope, ",");
@@ -208,7 +242,8 @@ void loop()
   #ifdef SERIALPRINT
     delay(100);
   #endif
-
+  activateRec(mfrc522);
+  delay(100);
   // Próxima llamada
   int espera = segundos_espera + aleatorioProximaLlamada;
   pausar(espera);
