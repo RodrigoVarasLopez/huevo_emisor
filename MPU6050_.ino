@@ -75,7 +75,7 @@
     pinMode(LED_PIN, OUTPUT);
 
 
-    for (int i=0; i<1300; i++){
+    for (int i=0; i<20; i++){
    // if programming failed, don't try to do anything
     if (!dmpReady) break;
 

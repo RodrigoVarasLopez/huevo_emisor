@@ -135,7 +135,7 @@ struct {
 
 // CONFIG
 char IDArduinoNodo[10] = "EGG";
-int segundos_espera = 1;
+int espera = 1;
 
 void setup()
 { 
@@ -158,7 +158,7 @@ void setup()
   blinkLed(1, 10);
 
   setupMPU(); //Inicializar giroscopio
-  RFIDsetup();
+  RFIDsetup();  
 }
 
 void loop()
@@ -167,7 +167,7 @@ void loop()
   String giroscope = loopMPU();
   String cadena=""; // se dejan todos los parámetros formados "t:10,h:20.2,l:45,q:546"
   String temp = "";
-  int aleatorioProximaLlamada = random(0,5);  // 0_4
+  //int aleatorioProximaLlamada = random(0,5);  // 0_4
 
   //DHT11
     temp = floatToString(dht.readTemperature(),1);
@@ -203,7 +203,7 @@ void loop()
 
   ///RFID
     String mfr="";
-    
+    activateRec(mfrc522);
     if (mfrc522.PICC_ReadCardSerial()){      
       mfr = String(mfrc522.uid.uidByte[0], HEX);
       Serial.println(mfr);
@@ -216,8 +216,8 @@ void loop()
           mfr="-1";       //Error radiofrecuencia -1
         }
       }
-      mfrc522.PICC_ReadCardSerial();  //Workaround
-    }else{
+     mfrc522.PICC_ReadCardSerial();  //Workaround ???
+     }else{
       Serial.println("");
       mfr="0";
     }   
@@ -242,10 +242,9 @@ void loop()
   #ifdef SERIALPRINT
     delay(100);
   #endif
-  activateRec(mfrc522);
+  //activateRec(mfrc522);
   delay(100);
   // Próxima llamada
-  int espera = segundos_espera + aleatorioProximaLlamada;
   pausar(espera);
 }
 
