@@ -28,11 +28,6 @@
     Serial.println(F("Testing device connections..."));
     Serial.println(mpu.testConnection() ? F("MPU6050 connection successful") : F("MPU6050 connection failed"));
 
-    // wait for ready
-    /*Serial.println(F("\nSend any character to begin DMP programming and demo: "));
-    while (Serial.available() && Serial.read()); // empty buffer
-    while (!Serial.available());                 // wait for data
-    while (Serial.available() && Serial.read()); // empty buffer again*/
 
     // load and configure the DMP
     Serial.println(F("Initializing DMP..."));
@@ -73,13 +68,13 @@
 
     // configure LED for output
     pinMode(LED_PIN, OUTPUT);
-
-    bucleMPU(1200); 
+    
+    bucleMPU(2000); 
 }
 
 String loopMPU() {
   //Leo valores del sensor giroscopio 4 veces
-  bucleMPU(4); 
+  bucleMPU(2); 
   
   float s1=ypr[0] * 180/M_PI;
   float s2=ypr[1] * 180/M_PI;
@@ -97,26 +92,22 @@ String loopMPU() {
   }
 
  void bucleMPU (int vueltas){
-  
+    
     for (int i=0; i<vueltas; i++){
-   // if programming failed, don't try to do anything
+    wdt_reset();
+    // if programming failed, don't try to do anything
     if (!dmpReady) break;
-
-   // wait for MPU interrupt or extra packet(s) available
-
-    // reset interrupt flag and get INT_STATUS byte
-    mpuInterrupt = false;
-    mpuIntStatus = mpu.getIntStatus();
 
     // get current FIFO count
     fifoCount = mpu.getFIFOCount();
 
     // check for overflow (this should never happen unless our code is too inefficient)
-    if ((mpuIntStatus & 0x10) || fifoCount == 1024) {
+    //if ((mpuIntStatus & 0x10) || fifoCount == 1024) {
+    if (fifoCount == 1024) {
         // reset so we can continue cleanly
         mpu.resetFIFO();
         Serial.println(F("FIFO overflow!"));
-
+        
     // otherwise, check for DMP data ready interrupt (this should happen frequently)
     } else {
         // wait for correct available data length, should be a VERY short wait
@@ -161,9 +152,9 @@ String loopMPU() {
         #endif
       
         // blink LED to indicate activity
-        blinkState = !blinkState;
-        digitalWrite(LED_PIN, blinkState);    
-    }    
+        //blinkState = !blinkState;
+        //digitalWrite(LED_PIN, blinkState);    
+    }
   }
  }
 

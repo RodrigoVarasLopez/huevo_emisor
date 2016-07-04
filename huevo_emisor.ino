@@ -2,10 +2,12 @@
 //Pines: MPU-sda:A4,     MPU-scl:A5       MPU-vcc:5v
 //Pines: RFtx-vcc:3,3v  RFtx-Data:4
 //Pines: DHT11-v:5v     DHT11-data:7
-//MPU
-#include <VirtualWire.h>
+
+#include <LowPower.h>
 #include <avr/wdt.h>
-#include "LowPower.h"
+//#include <Adafruit_SleepyDog.h>
+
+#include <VirtualWire.h>
 #include "I2Cdev.h"
 #include "MPU6050_6Axis_MotionApps20.h"
 #if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
@@ -13,6 +15,8 @@
 #endif
 #include <SPI.h>//include the SPI bus library
 #include <MFRC522.h>//include the RFID reader library
+
+
 
 #define IRQ_PIN 3
 #define SS_PIN 10  //slave select pin
@@ -31,17 +35,6 @@ MPU6050 mpu;
 //==              Opciones deseadas de conversión                   ==
 //====================================================================
 
-// uncomment "OUTPUT_READABLE_QUATERNION" if you want to see the actual
-// quaternion components in a [w, x, y, z] format (not best for parsing
-// on a remote host such as Processing or something though)
-//#define OUTPUT_READABLE_QUATERNION
-
-// uncomment "OUTPUT_READABLE_EULER" if you want to see Euler angles
-// (in degrees) calculated from the quaternions coming from the FIFO.
-// Note that Euler angles suffer from gimbal lock (for more info, see
-// http://en.wikipedia.org/wiki/Gimbal_lock)
-//#define OUTPUT_READABLE_EULER
-
 // uncomment "OUTPUT_READABLE_YAWPITCHROLL" if you want to see the yaw/
 // pitch/roll angles (in degrees) calculated from the quaternions coming
 // from the FIFO. Note this also requires gravity vector calculations.
@@ -49,19 +42,6 @@ MPU6050 mpu;
 // more info, see: http://en.wikipedia.org/wiki/Gimbal_lock)
 
 #define OUTPUT_READABLE_YAWPITCHROLL
-
-// uncomment "OUTPUT_READABLE_REALACCEL" if you want to see acceleration
-// components with gravity removed. This acceleration reference frame is
-// not compensated for orientation, so +X is always +X according to the
-// sensor, just without the effects of gravity. If you want acceleration
-// compensated for orientation, us OUTPUT_READABLE_WORLDACCEL instead.
-//#define OUTPUT_READABLE_REALACCEL
-
-// uncomment "OUTPUT_READABLE_WORLDACCEL" if you want to see acceleration
-// components with gravity removed and adjusted for the world frame of
-// reference (yaw is relative to initial orientation, since no magnetometer
-// is present in this case). Could be quite handy in some cases.
-//#define OUTPUT_READABLE_WORLDACCEL
 
 // uncomment "OUTPUT_TEAPOT" if you want output that matches the
 // format used for the InvenSense teapot demo
@@ -139,12 +119,13 @@ int espera = 1;
 
 void setup()
 { 
+  wdt_enable(WDTO_4S);
   #ifdef SERIALPRINT
     Serial.begin(115200);
     Serial.print("\nIniciando ...\n");
   #endif
-  wdt_enable(WDTO_8S);
-  randomSeed(analogRead(pinAnalogRandom));
+  
+  //randomSeed(analogRead(pinAnalogRandom));
   dht.begin();
   vw_set_tx_pin(TX_DIO_Pin);
   vw_set_ptt_inverted(true);
@@ -153,18 +134,20 @@ void setup()
   // LED visual indica encendido
   pinMode(ledDigitalPin, OUTPUT);
   blinkLed(1, 10);
-
-  pausar(1); // Pausado 2s 
+  delay(1000);
   blinkLed(1, 10);
-
+  
+  wdt_reset();
   setupMPU(); //Inicializar giroscopio
+  wdt_reset();
   RFIDsetup();  
+
 }
 
 void loop()
 {
   wdt_reset();
-  String giroscope = loopMPU();
+  
   String cadena=""; // se dejan todos los parámetros formados "t:10,h:20.2,l:45,q:546"
   String temp = "";
   //int aleatorioProximaLlamada = random(0,5);  // 0_4
@@ -201,7 +184,7 @@ void loop()
     
   }
 
-  ///RFID
+  //RFID
     String mfr="";
     activateRec(mfrc522);
     if (mfrc522.PICC_ReadCardSerial()){      
@@ -224,6 +207,7 @@ void loop()
     cadena= addCadena( cadena,"ID:" + mfr, ",");
 
   //Giroscope
+  String giroscope = loopMPU();
   cadena= addCadena( cadena, giroscope, ",");
   wdt_reset();
 
@@ -235,7 +219,7 @@ void loop()
   #ifdef SERIALPRINT
     Serial.println(String(mensajeAEnviar));
   #endif
-
+  
   // Enviamos por RF
   enviarString(mensajeAEnviar);
 
@@ -250,9 +234,13 @@ void loop()
 
 void pausar(int seconds) {
   for (int i = 0; i < seconds; i++) {
-    //Serial.println("Dormido");
+    
+    //LowPower.idle(SLEEP_4S, ADC_OFF, TIMER2_OFF, TIMER1_OFF, TIMER0_OFF, 
+    //          SPI_OFF, USART0_OFF, TWI_OFF);
     LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
     wdt_reset();
+    //Watchdog.sleep(8000);
+    wdt_enable(WDTO_8S);
   }
 }
 
